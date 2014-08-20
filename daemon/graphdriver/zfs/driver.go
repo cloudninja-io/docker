@@ -39,10 +39,10 @@ func (d *Driver) Cleanup() error {
 func (d *Driver) Create(id, parent string) error {
 	dataset := d.dataset(id)
 
-	argv := make([]string, 0, 3)
-
 	if parent == "" {
-		argv = append(argv, "create", "-p", dataset)
+		if output, err := exec.Command("zfs", "create", "-p", dataset).CombinedOutput(); err != nil {
+			return fmt.Errorf("Error ZFS creating dataset: %s (%s)", err, output)
+		}
 	} else {
 		parentDataset := fmt.Sprintf("%s@%s", d.dataset(parent), id)
 
@@ -50,11 +50,13 @@ func (d *Driver) Create(id, parent string) error {
 			return fmt.Errorf("Error ZFS creating parent snapshot: %s (%s)", err, output)
 		}
 
-		argv = append(argv, "clone", parentDataset, dataset)
-	}
+		if output, err := exec.Command("zfs", "clone", parentDataset, dataset).CombinedOutput(); err != nil {
+			return fmt.Errorf("Error ZFS creating dataset: %s (%s)", err, output)
+		}
 
-	if output, err := exec.Command("zfs", argv...).CombinedOutput(); err != nil {
-		return fmt.Errorf("Error ZFS creating dataset: %s (%s)", err, output)
+		if output, err := exec.Command("zfs", "destroy", "-d", parentDataset).CombinedOutput(); err != nil {
+			return fmt.Errorf("Error ZFS marking dataset: %s (%s)", err, output)
+		}
 	}
 
 	return nil
@@ -67,18 +69,29 @@ func (d *Driver) dataset(id string) string {
 func (d *Driver) Remove(id string) error {
 	dataset := d.dataset(id)
 
-	output, err := exec.Command("zfs", "get", "-Ho", "value", "origin", dataset).Output()
+	output, err := exec.Command("zfs", "list", "-rt", "snapshot", "-Ho", "name", dataset).Output()
 	if err != nil {
-		return fmt.Errorf("Error ZFS failed to get origin: %s (%s)", dataset, err)
+		return fmt.Errorf("Error ZFS retrieving children: %s (%s)", err, output)
 	}
 
-	parentDataset := strings.TrimSuffix(string(output), "\n")
+	snapshots := strings.Split(strings.TrimSuffix(string(output), "\n"), "\n")
 
-	if parentDataset != "-" {
-		dataset = parentDataset
+	for _, snapshot := range snapshots {
+		output, err := exec.Command("zfs", "get", "-Ho", "value", "clones", snapshot).Output()
+		if err != nil {
+			return fmt.Errorf("Error ZFS retrieving clones: %s (%s)", err, output)
+		}
+
+		clones := strings.Split(strings.TrimSuffix(string(output), ","), "\n")
+
+		for _, clone := range clones {
+			if output, err := exec.Command("zfs", "promote", clone).CombinedOutput(); err != nil {
+				return fmt.Errorf("Error ZFS promoting dataset: %s (%s)", err, output)
+			}
+		}
 	}
 
-	if output, err := exec.Command("zfs", "destroy", "-R", dataset).CombinedOutput(); err != nil {
+	if output, err := exec.Command("zfs", "destroy", "-r", dataset).CombinedOutput(); err != nil {
 		return fmt.Errorf("Error ZFS destroying dataset: %s (%s)", err, output)
 	}
 
