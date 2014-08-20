@@ -78,7 +78,7 @@ func (d *Driver) Remove(id string) error {
 		dataset = parentDataset
 	}
 
-	if output, err := exec.Command("zfs", "destroy", "-r", dataset).CombinedOutput(); err != nil {
+	if output, err := exec.Command("zfs", "destroy", "-R", dataset).CombinedOutput(); err != nil {
 		return fmt.Errorf("Error ZFS destroying dataset: %s (%s)", err, output)
 	}
 
