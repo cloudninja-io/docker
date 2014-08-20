@@ -42,7 +42,7 @@ func (d *Driver) Create(id, parent string) error {
 	argv := make([]string, 0, 3)
 
 	if parent == "" {
-		argv = append(argv, "create", dataset)
+		argv = append(argv, "create", "-p", dataset)
 	} else {
 		parentDataset := fmt.Sprintf("%s@%s", d.dataset(parent), id)
 
