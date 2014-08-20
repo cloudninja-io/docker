@@ -103,7 +103,7 @@ func (d *Driver) Get(id, mountLabel string) (string, error) {
 
 	output, err := exec.Command("zfs", "get", "-Ho", "value", "mountpoint", dataset).Output()
 	if err != nil {
-		return "", fmt.Errorf("Error ZFS failed to get mountpoint: %s (%s)", dataset, err)
+		return "", fmt.Errorf("Error ZFS failed to get mountpoint: %s (%s)", err, output)
 	}
 
 	return strings.TrimSuffix(string(output), "\n"), nil
