@@ -53,8 +53,6 @@ func (d *Driver) Create(id, parent string) error {
 		argv = append(argv, "clone", fmt.Sprintf("%s@final"), dataset)
 	}
 
-	argv = append(argv, dataset)
-
 	if output, err := exec.Command("zfs", argv...).CombinedOutput(); err != nil {
 		return fmt.Errorf("Error ZFS creating dataset: %s (%s)", err, output)
 	}
@@ -63,7 +61,7 @@ func (d *Driver) Create(id, parent string) error {
 }
 
 func (d *Driver) dataset(id string) string {
-	return path.Join(d.home, path.Base(id))
+	return path.Join("storage/docker", path.Base(id))
 }
 
 func (d *Driver) Remove(id string) error {
