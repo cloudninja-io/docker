@@ -67,6 +67,17 @@ func (d *Driver) dataset(id string) string {
 func (d *Driver) Remove(id string) error {
 	dataset := d.dataset(id)
 
+	output, err := exec.Command("zfs", "get", "-Ho", "value", "origin", dataset).Output()
+	if err != nil {
+		return fmt.Errorf("Error ZFS failed to get origin: %s (%s)", dataset, err)
+	}
+
+	parentDataset := strings.TrimSuffix(string(output), "\n")
+
+	if parentDataset != "-" {
+		dataset = parentDataset
+	}
+
 	if output, err := exec.Command("zfs", "destroy", "-r", dataset).CombinedOutput(); err != nil {
 		return fmt.Errorf("Error ZFS destroying dataset: %s (%s)", err, output)
 	}
