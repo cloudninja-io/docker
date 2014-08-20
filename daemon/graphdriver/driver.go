@@ -48,6 +48,7 @@ var (
 	// Slice of drivers that should be used in an order
 	priority = []string{
 		"aufs",
+		"zfs",
 		"btrfs",
 		"devicemapper",
 		"vfs",
