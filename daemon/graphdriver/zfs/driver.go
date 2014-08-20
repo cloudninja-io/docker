@@ -50,7 +50,7 @@ func (d *Driver) Create(id, parent string) error {
 			return fmt.Errorf("Error ZFS creating parent snapshot: %s (%s)", err, output)
 		}
 
-		argv = append(argv, "clone", fmt.Sprintf("%s@final"), dataset)
+		argv = append(argv, "clone", parentDataset, dataset)
 	}
 
 	if output, err := exec.Command("zfs", argv...).CombinedOutput(); err != nil {
