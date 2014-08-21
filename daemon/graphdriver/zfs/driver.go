@@ -74,17 +74,25 @@ func (d *Driver) Remove(id string) error {
 		return fmt.Errorf("Error ZFS retrieving children: %s (%s)", err, output)
 	}
 
-	snapshots := strings.Split(strings.TrimSuffix(string(output), "\n"), "\n")
+	snapshots := strings.Split(string(output), "\n")
 
 	for _, snapshot := range snapshots {
-		output, err := exec.Command("zfs", "get", "-Ho", "value", "clones", snapshot).Output()
-		if err != nil {
-			return fmt.Errorf("Error ZFS retrieving clones: %s (%s)", err, output)
+		if snapshot == "" {
+			continue
 		}
 
-		clones := strings.Split(strings.TrimSuffix(string(output), ","), "\n")
+		output, err := exec.Command("zfs", "get", "-Ho", "value", "clones", snapshot).Output()
+		if err != nil {
+			return fmt.Errorf("Error ZFS retrieving clones for %s: %s (%s)", snapshot, err, output)
+		}
+
+		clones := strings.Split(strings.TrimSuffix(string(output), "\n"), ",")
 
 		for _, clone := range clones {
+			if clone == "" {
+				continue
+			}
+
 			if output, err := exec.Command("zfs", "promote", clone).CombinedOutput(); err != nil {
 				return fmt.Errorf("Error ZFS promoting dataset: %s (%s)", err, output)
 			}
